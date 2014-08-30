@@ -1,0 +1,9 @@
+{
+    "name": "JSPivotTable",
+    "description": "Javascript Pivot Table (alpha release)",
+    "type": "visualization",
+	"icon" : "table",
+	"preview" : "JSPivotTable.png",
+    "version": "0.1",
+    "author": "Juan Gerardo Cabeza"
+}
