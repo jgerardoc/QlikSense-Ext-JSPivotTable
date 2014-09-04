@@ -16,8 +16,8 @@ define(["jquery", "text!./JSPivotTable.css", "./d3.min", "./pivot"], function($,
 			InitialRows: "",
 			InitialCols: "",
 			RenderName: "Table",
-			AllowChanges: true,
-			Aggregation: "Count"
+			AllowChanges: false,
+			Aggregation: "Sum"
 		},
 		definition : {
 			type : "items",
@@ -78,66 +78,36 @@ define(["jquery", "text!./JSPivotTable.css", "./d3.min", "./pivot"], function($,
 											label: "Col Heatmap"
 										}]
 								},
-								// Aggregation:{
-									// ref: "Aggregation",
-									// expression:"optional",
-									// translation: "Data aggregation",
-									// type: "string",
-									// defaultValue: "Count",
-									// component: "dropdown",
-									// options: [ {
-											// value: "Count",
-											// label: "Count"
-										// }, {
-											// value: "Count Unique Values",
-											// label: "Count Unique Values"
-										// }, {
-											// value: "List Unique Values",
-											// label: "List Unique Values"
-										// }, {
-											// value: "Sum",
-											// label: "Sum"
-										// }, {
-											// value: "Integer Sum",
-											// label: "Integer Sum"
-										// }, {
-											// value: "Average",
-											// label: "Average"
-										// }, {
-											// value: "Sum over Sum",
-											// label: "Sum over Sum"
-										// }, {
-											// value: "80% Upper Bound",
-											// label: "80% Upper Bound"
-										// }, {
-											// value: "80% Lower Bound",
-											// label: "80% Lower Bound"
-										// }, {
-											// value: "Sum as Fraction of Total",
-											// label: "Sum as Fraction of Total"
-										// }, {
-											// value: "Sum as Fraction of Rows",
-											// label: "Sum as Fraction of Rows"
-										// }, {
-											// value: "Sum as Fraction of Columns",
-											// label: "Sum as Fraction of Columns"
-										// }, {
-											// value: "Count as Fraction of Total",
-											// label: "Count as Fraction of Total"
-										// }, {
-											// value: "Count as Fraction of Rows",
-											// label: "Count as Fraction of Rows"
-										// }, {
-											// value: "Count as Fraction of Columns",
-											// label: "Count as Fraction of Columns"
-										// }]
-								// },
+								Aggregation:{
+									ref: "Aggregation",
+									expression:"optional",
+									translation: "Totals aggregation",
+									type: "string",
+									defaultValue: "Sum",
+									component: "dropdown",
+									options: [ {
+											value: "Count",
+											label: "Count"
+										}, {
+											value: "Count Unique Values",
+											label: "Count Unique Values"
+										}, {
+											value: "List Unique Values",
+											label: "List Unique Values"
+										}, {
+											value: "Sum",
+											label: "Sum"
+										}, {
+											value: "Average",
+											label: "Average"
+										}]
+								},
 								AllowChanges:{
 									ref: "AllowChanges",
 									expression:"optional",
 									translation: "Allow the user to change the layout",
 									type: "bool",
-									defaultValue: true,
+									defaultValue: false,
 									component: "switch",
 									options: [ { // Must be exactly 2 options for the switch type, the first option is shown when value is true
 										value: true,
@@ -194,17 +164,37 @@ define(["jquery", "text!./JSPivotTable.css", "./d3.min", "./pivot"], function($,
 				listcols[listcols.length] = dimensionLabels[i];
 			};
 			
-			// var listaggregators = {};
-			// listaggregators
+			var tpl = $.pivotUtilities.aggregatorTemplates;			
+			var aggregator = tpl.sum()(measureLabels);
+			var aggregators = {};
 			
-			var distribution = {
-				rows: listrows, 
-				cols: listcols,
-				rendererName: layout.RenderName
-				// aggregators: layout.Aggregation
-				};
-				
-
+			switch(layout.Aggregation){
+				case "Count":
+					aggregators = {"Count": function() { return tpl.count()(measureLabels) }};
+					aggregator = tpl.count()(measureLabels)
+					break;
+				case "Count Unique Values":
+					aggregators = {"Count Unique Values": function() { return tpl.countUnique()(measureLabels) }};
+					aggregator = tpl.countUnique()(measureLabels)
+					break;
+				case "List Unique Values":
+					aggregators = {"List Unique Values": function() { return tpl.listUnique()(measureLabels) }};
+					aggregator = tpl.listUnique()(measureLabels)
+					break;
+				case "Sum":
+					aggregators = {"Sum": function() { return tpl.sum()(measureLabels) }};
+					aggregator = tpl.sum()(measureLabels)
+					break;
+				case "Average":
+					aggregators = {"Average": function() { return tpl.average()(measureLabels) }};
+					aggregator = tpl.average()(measureLabels)
+					break;
+				default:
+					aggregators = {"Sum": function() { return tpl.sum()(measureLabels) }};
+					aggregator = tpl.sum()(measureLabels)
+					break;
+			}
+			
 			// Chart object width
 			var width = $element.width();
 			// Chart object height
@@ -224,9 +214,36 @@ define(["jquery", "text!./JSPivotTable.css", "./d3.min", "./pivot"], function($,
 			
 			if(layout.AllowChanges){
 				// User can change the fields distribution
+
+				var distribution = {
+					rows: listrows, 
+					cols: listcols,
+					vals: measureLabels,
+					hiddenAttributes: measureLabels,
+					rendererName: layout.RenderName,
+					aggregators: aggregators
+/* 	 				aggregators: {
+								"Sum":		function() { return tpl.sum()(measureLabels) },
+								"Count":	function() { return tpl.count()(measureLabels) },
+								"Average":	function() { return tpl.average()(measureLabels)}
+							}
+ */					};
+
 				$("#" + id).pivotUI(data, distribution);
+
 			} else {
 				// Read only pivot table
+
+				var distribution = {
+					rows: listrows, 
+					cols: listcols,
+	//				vals: measureLabels,
+	//				hiddenAttributes: measureLabels,
+					rendererName: layout.RenderName,
+					aggregator: aggregator
+					//aggregator: tpl.sum()(measureLabels)
+					};
+
 				$("#" + id).pivot(data, distribution);
 			}
 		}
